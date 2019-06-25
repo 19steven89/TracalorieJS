@@ -79,6 +79,20 @@ const ItemCtrl = (function(){
         },
         getCurrentFoodItem: function(){
             return data.currItem;
+        },
+        updateItem: function(name, calories){
+            // convert cals to number
+            calories = parseInt(calories);
+            let found = null;
+            data.items.forEach((item) => {
+                if(item.id === data.currItem.id){
+                    item.name = name;
+                    item.calories = calories;
+                    found = item;
+                }
+            });
+
+            return found;
         }
     }   
 
@@ -92,6 +106,7 @@ const UICtrl = (function(){
     //create an object which contains the itemList id name and addMealBtn classname, to make it more dynamic, rather than hard coding it in html
     const UIselectors = {
         itemList: "#item-list",
+        listItems: "#item-list li",
         addMealBtn: ".add-btn",
         updateButton: ".update-btn",
         deleteButton: ".delete-btn",
@@ -131,6 +146,21 @@ const UICtrl = (function(){
             li.innerHTML = `<strong>${newFoodItem.name}: </strong><em>${newFoodItem.calories} Calories<a href="#" class="secondary-content"><i class="edit-item fa fa-pencil"></i></a></em>`;
             //add to the UI
             document.querySelector(UIselectors.itemList).insertAdjacentElement("beforeend", li);
+        },
+        updateListItem: function(updatedItem){
+            let listItems = document.querySelectorAll(UIselectors.listItems);
+            // convert the listItems node list into an array so that a for each can be used on it:
+            listItems = Array.from(listItems);
+
+            listItems.forEach((listItem) => {
+                const itemID = listItem.getAttribute("id");
+
+                if(itemID === `item-${updatedItem.id}`){
+                    document.querySelector(`#${itemID}`).innerHTML = `<strong>${updatedItem.name}: </strong><em>${updatedItem.calories} Calories<a href="#" class="secondary-content"><i class="edit-item fa fa-pencil"></i></a></em>`;
+                }
+            });
+
+
         },
         // return the list items 
         getSelectors: function(){
@@ -184,8 +214,20 @@ const App = (function(itemCtrl, uICtrl){
         // Add Item event for add meal button:
         document.querySelector(UIselectors.addMealBtn).addEventListener("click", mealItemAdd);
 
+        document.addEventListener("keypress", function(e){
+            // if user presses enter when in edit state, dont add the same meal item again
+            if(e.keycode === 13 || e.which === 13){
+                //disables the enter key when in edit state
+                e.preventDefault();
+                return false;
+            }
+        });
+
         // edit icon click event, i.e event used when user clicks the pencil icon of a food item
-        document.querySelector(UIselectors.itemList).addEventListener("click", itemUpdateSubmit);
+        document.querySelector(UIselectors.itemList).addEventListener("click", itemEditClick);
+
+        
+        document.querySelector(UIselectors.updateButton).addEventListener("click", itemUpdateSubmit);
 
     };
 
@@ -212,7 +254,8 @@ const App = (function(itemCtrl, uICtrl){
         }
     }
 
-    const itemUpdateSubmit = function(e){                      
+    // click edit item event function
+    const itemEditClick = function(e){                      
         if(e.target.classList.contains("edit-item")){
             //get the list item id
             const listID = e.target.parentNode.parentNode.parentNode.id;
@@ -234,7 +277,27 @@ const App = (function(itemCtrl, uICtrl){
         }        
 
         e.preventDefault();
+    }
 
+    const itemUpdateSubmit =  function(e){
+        console.log("Update");
+        // get item input
+        const input = UICtrl.getItemInput();
+
+        // update item
+        const updateditem = ItemCtrl.updateItem(input.name, input.calories);
+
+        // update the UI with the new edited food item:
+        UICtrl.updateListItem(updateditem);
+
+         // get total calories
+         const totalCals = ItemCtrl.getTotalCalories();
+         // add the total calories to the ui
+         UICtrl.showTotalCalories(totalCals);
+
+         UICtrl.clearEditState();
+
+        e.preventDefault();
     }
 
     // Public return method:
