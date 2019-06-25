@@ -91,8 +91,20 @@ const ItemCtrl = (function(){
                     found = item;
                 }
             });
-
             return found;
+        },
+        deleteItem: function(id){
+            // get ids
+            const ids = data.items.map((item)=> {
+                return item.id;
+            });
+            // get index
+            const index = ids.indexOf(id);
+            // remove item from structure
+            data.items.splice(index, 1)
+        },
+        clearAllItems: function(){
+            data.items = [];
         }
     }   
 
@@ -113,7 +125,8 @@ const UICtrl = (function(){
         backBtn: ".back-btn",
         foodItemName: "#item-name",
         foodCalories: "#item-calories",
-        totalCals: ".total-calories"
+        totalCals: ".total-calories",
+        clearAllBtn: ".clear-btn"
     };
 
      // Public return method:
@@ -159,8 +172,11 @@ const UICtrl = (function(){
                     document.querySelector(`#${itemID}`).innerHTML = `<strong>${updatedItem.name}: </strong><em>${updatedItem.calories} Calories<a href="#" class="secondary-content"><i class="edit-item fa fa-pencil"></i></a></em>`;
                 }
             });
-
-
+        },
+        deleteListItem: function(id){
+            const itemID = `#item-${id}`;
+            const item = document.querySelector(itemID);
+            item.remove();
         },
         // return the list items 
         getSelectors: function(){
@@ -186,17 +202,27 @@ const UICtrl = (function(){
         clearEditState: function(){
             // only show the addMealBtn to the user when in normal state
             UICtrl.clearInput();
-            document.querySelector(UIselectors.updateButton).style.display = "none";
-            document.querySelector(UIselectors.backBtn).style.display = "none";
-            document.querySelector(UIselectors.deleteButton).style.display = "none";
-            document.querySelector(UIselectors.addMealBtn).style.display = "inline";
+            document.querySelector(UIselectors.updateButton).style.display = 'none';
+            document.querySelector(UIselectors.deleteButton).style.display = 'none';
+            document.querySelector(UIselectors.backBtn).style.display = 'none';
+            document.querySelector(UIselectors.addMealBtn).style.display = 'inline';
         },
         showEditState: function(){
             // show the edit buttons such as update, back and delete to the user when in edit state
-            document.querySelector(UIselectors.updateButton).style.display = "inline";
-            document.querySelector(UIselectors.backBtn).style.display = "inline";
-            document.querySelector(UIselectors.deleteButton).style.display = "inline";
-            document.querySelector(UIselectors.addMealBtn).style.display = "none";
+            document.querySelector(UIselectors.updateButton).style.display = 'inline';
+            document.querySelector(UIselectors.deleteButton).style.display = 'inline';
+            document.querySelector(UIselectors.backBtn).style.display = 'inline';
+            document.querySelector(UIselectors.addMealBtn).style.display = 'none';
+        },
+        removeItems: function(){
+            let listItems = document.querySelectorAll(UIselectors.listItems);
+
+            // convert Node list items into array
+            listItems = Array.from(listItems);
+
+            listItems.forEach((item) => {
+                item.remove();
+            });
         }
      };
     
@@ -225,15 +251,19 @@ const App = (function(itemCtrl, uICtrl){
 
         // edit icon click event, i.e event used when user clicks the pencil icon of a food item
         document.querySelector(UIselectors.itemList).addEventListener("click", itemEditClick);
-
-        
+        // update item event
         document.querySelector(UIselectors.updateButton).addEventListener("click", itemUpdateSubmit);
+        // back button event listener        
+        document.querySelector(UIselectors.backBtn).addEventListener('click', UICtrl.clearEditState);
+        //delete event listener
+        document.querySelector(UIselectors.deleteButton).addEventListener('click', itemDeleteSubmit);
+         //clear all items event listener
+         document.querySelector(UIselectors.clearAllBtn).addEventListener('click', clearAllItemsClick);
+
 
     };
 
     const mealItemAdd = function(e){
-        e.preventDefault();
-
         // get form input from UI controller:
         const userInput = UICtrl.getItemInput();
         
@@ -251,6 +281,8 @@ const App = (function(itemCtrl, uICtrl){
 
             // clear the form input fields:
             UICtrl.clearInput();
+
+            e.preventDefault();
         }
     }
 
@@ -280,6 +312,8 @@ const App = (function(itemCtrl, uICtrl){
     }
 
     const itemUpdateSubmit =  function(e){
+        e.preventDefault();
+
         console.log("Update");
         // get item input
         const input = UICtrl.getItemInput();
@@ -296,8 +330,40 @@ const App = (function(itemCtrl, uICtrl){
          UICtrl.showTotalCalories(totalCals);
 
          UICtrl.clearEditState();
+    }
 
+    const itemDeleteSubmit = function(e){
+        // get current item
+        let currentItem = ItemCtrl.getCurrentFoodItem();
+
+        // delete from data structure
+        ItemCtrl.deleteItem(currentItem.id);
+
+        // delete the item from the UI
+        UICtrl.deleteListItem(currentItem.id);
+
+        // get total calories
+        const totalCals = ItemCtrl.getTotalCalories();
+        // add the total calories to the ui
+        UICtrl.showTotalCalories(totalCals);
+        UICtrl.clearEditState();
+        
         e.preventDefault();
+    }
+
+    const clearAllItemsClick = function(){
+        // clear alll items from data structure
+        ItemCtrl.clearAllItems();
+
+        // get total calories
+        const totalCals = ItemCtrl.getTotalCalories();
+        // add the total calories to the ui
+        UICtrl.showTotalCalories(totalCals);
+
+        // remove items from UI
+        UICtrl.removeItems();
+
+        UICtrl.hideList();
     }
 
     // Public return method:
